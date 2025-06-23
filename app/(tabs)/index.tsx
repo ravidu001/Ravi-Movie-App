@@ -1,4 +1,4 @@
-import "./globals.css"
+import "../globals.css"
 
 import { Text, View } from "react-native";
 
