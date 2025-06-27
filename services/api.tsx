@@ -37,7 +37,7 @@ export const fetchMovieDetails = async (movieId: string): Promise<MovieDetails> 
             headers: TMDB_CONFIG.headers,
         })
         
-        if (response.ok) throw new Error('Failed to fetch movie details');
+        if (!response.ok) throw new Error('Failed to fetch movie details');
 
         const data = await response.json();
 
@@ -48,5 +48,3 @@ export const fetchMovieDetails = async (movieId: string): Promise<MovieDetails> 
         throw error;
     }
 }
-
-// /discover/movie
