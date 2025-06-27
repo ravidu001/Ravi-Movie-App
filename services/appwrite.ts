@@ -3,7 +3,7 @@ import { Client, Databases, ID, Query } from 'react-native-appwrite';
 // track the searches made by a user
 
 const DATBASE_ID = process.env.EXPO_PUBLIC_DATABASE_ID!;
-const COLLECTION_ID = process.env.EXPO_PUBLIC_COOLECTION_ID!;
+const COLLECTION_ID = process.env.EXPO_PUBLIC_METRICS_COLLECTION_ID!;
 
 const client = new Client()
     .setEndpoint('https://nyc.cloud.appwrite.io/v1') 

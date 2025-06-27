@@ -7,6 +7,23 @@ export const TMDB_CONFIG = {
     }
 }
 
+// export const fetchUserSavedMovies = async () => {
+//   const token = await getToken();
+//   if (!token) throw new Error('No authentication token available');
+
+//   const response = await fetch(`${process.env.EXPO_PUBLIC_APPWRITE_ENDPOINT}/databases/${process.env.EXPO_PUBLIC_DATABASE_ID}/collections/${process.env.EXPO_PUBLIC_METRICS_COLLECTION_ID}/documents`, {
+//     method: 'GET',
+//     headers: {
+//       accept: 'application/json',
+//       Authorization: `Bearer ${token}`,
+//     },
+//   });
+
+//   if (!response.ok) throw new Error('Failed to fetch saved movies');
+
+//   return response.json();
+// };
+
 export const fetchMovies = async ({ query }: { query: string }) => {
     const endpoint = query
         ? `${TMDB_CONFIG.BASE_URL}/search/movie?query=${encodeURIComponent(query)}` // Fixed: Added backticks
