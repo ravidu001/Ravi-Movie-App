@@ -17,10 +17,13 @@ import {
   deleteUserAccount,
   getUserPreferences,
   getUserProfile,
+  pickProfileImage,
+  updateProfilePicture,
   updateUserPreferences,
   updateUserProfile
 } from '@/services/userSettings';
 
+import { getProfilePictureUrl } from '@/services/userSettings';
 import { icons } from '@/constants/icons';
 import { images } from '@/constants/images';
 import { router } from 'expo-router';
@@ -31,12 +34,14 @@ const AccountSettings = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   // Form states
   const [displayName, setDisplayName] = useState('');
   const [bio, setBio] = useState('');
   const [location, setLocation] = useState('');
   const [emailNotifications, setEmailNotifications] = useState(true);
+  const [profilePictureUrl, setProfilePictureUrl] = useState<string | null>(null);
 
   // Password change states
   const [showPasswordForm, setShowPasswordForm] = useState(false);
@@ -61,9 +66,16 @@ const AccountSettings = () => {
       setUser(userData);
 
       // Load user profile
+      const pictureUrl = await getProfilePictureUrl();
+      if (pictureUrl) {
+        setProfilePictureUrl(pictureUrl);
+      } 
+
+      // Load user profile data
       const profileData = await getUserProfile();
       if (profileData) {
         setProfile(profileData);
+        // Set form fields with profile data
         setDisplayName(profileData.display_name || userData.fullName);
         setBio(profileData.bio || '');
         setLocation(profileData.location || '');
@@ -85,6 +97,72 @@ const AccountSettings = () => {
       Alert.alert('Error', 'Failed to load user data');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleProfilePictureChange = async () => {
+    Alert.alert(
+      'Change Profile Picture',
+      'Choose an option:',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Choose from Gallery', onPress: selectFromGallery },
+        { text: 'Remove Picture', onPress: removePicture, style: 'destructive' }
+      ]
+    );
+  };
+
+  const selectFromGallery = async () => {
+    setUploadingImage(true);
+    try {
+      // Pick image
+      const result = await pickProfileImage();
+      if (!result.success) {
+        Alert.alert('Error', result.error || 'Failed to pick image');
+        return;
+      }
+
+      // Upload and update profile
+      const uploadResult = await updateProfilePicture(result.uri!);
+      if (uploadResult.success) {
+        setProfilePictureUrl(uploadResult.url || null);
+        Alert.alert('Success', 'Profile picture updated successfully!');
+        await loadUserData(); // Reload to get fresh data
+      } else {
+        Alert.alert('Error', uploadResult.error || 'Failed to update profile picture');
+      }
+
+    } catch (error) {
+      console.error('Error updating profile picture:', error);
+      Alert.alert('Error', 'Failed to update profile picture');
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  const removePicture = async () => {
+    setSaving(true);
+    try {
+      // Update profile to clear both picture URL and file ID
+      const success = await updateUserProfile({
+        profile_picture_url: '',
+        profile_picture_file_id: '' // This is the key fix - clear the file ID too
+      });
+
+      if (success) {
+        setProfilePictureUrl(null);
+        Alert.alert('Success', 'Profile picture removed successfully!');
+        
+        // Reload user data to ensure UI is updated
+        await loadUserData();
+      } else {
+        Alert.alert('Error', 'Failed to remove profile picture');
+      }
+    } catch (error) {
+      console.error('Error removing profile picture:', error);
+      Alert.alert('Error', 'Failed to remove profile picture');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -112,7 +190,6 @@ const AccountSettings = () => {
         Alert.alert('Success', 'Profile updated successfully!', [
           { text: 'OK', onPress: () => setIsEditing(false) }
         ]);
-        // Reload data to get fresh info
         await loadUserData();
       } else {
         Alert.alert('Error', 'Failed to update some settings. Please try again.');
@@ -127,7 +204,6 @@ const AccountSettings = () => {
   };
 
   const handlePasswordChange = async () => {
-    // Enhanced validation
     if (!currentPassword.trim()) {
       Alert.alert('Error', 'Please enter your current password');
       return;
@@ -259,14 +335,42 @@ const AccountSettings = () => {
         {/* Profile Section */}
         <View className="bg-gray-800/50 rounded-2xl p-6 mb-6 border border-gray-700">
           <View className="items-center mb-6">
-            <View className="w-20 h-20 bg-blue-600 rounded-full items-center justify-center mb-4">
-              <Text className="text-white text-xl font-bold">
-                {user?.fullName.charAt(0).toUpperCase()}
-              </Text>
-            </View>
-            <TouchableOpacity>
-              <Text className="text-blue-400 text-sm">Change Avatar (Coming Soon)</Text>
+            {/* Profile Picture */}
+            <TouchableOpacity 
+              onPress={handleProfilePictureChange}
+              className="items-center mb-4"
+              disabled={uploadingImage}
+            >
+              {profilePictureUrl ? (
+                <Image 
+                  source={{ uri: profilePictureUrl }}
+                  className="w-24 h-24 rounded-full mb-4"
+                  style={{ backgroundColor: '#3B82F6' }}
+                />
+              ) : (
+                <View className="w-20 h-20 bg-blue-600 rounded-full items-center justify-center">
+                  <Text className="text-white text-xl font-bold">
+                    {user?.fullName.charAt(0).toUpperCase()}
+                  </Text>
+                </View>
+              )}
+              
+              {/* Upload indicator
+              {uploadingImage && (
+                <View className="absolute inset-0 bg-black/50 rounded-full items-center justify-center">
+                  <ActivityIndicator size="small" color="#fff" />
+                </View>
+              )} */}
+              
+              {/* Camera icon overlay */}
+              <View className="absolute bottom-3 right-0 bg-blue-600 rounded-full p-2">
+                <Image source={icons.search} className="w-3 h-3" tintColor="#fff" />
+              </View>
             </TouchableOpacity>
+            
+            <Text className="text-blue-400 text-sm">
+              {uploadingImage ? 'Uploading...' : 'Tap to change picture'}
+            </Text>
           </View>
 
           {/* Personal Information */}
@@ -274,7 +378,7 @@ const AccountSettings = () => {
           
           <View className="space-y-4">
             <View>
-              <Text className="text-gray-400 text-sm mb-2">Display Name</Text>
+              <Text className="text-gray-400 text-sm mb-2">Full Name</Text>
               <TextInput
                 className={`text-white p-4 rounded-lg border ${
                   isEditing ? 'bg-gray-700 border-gray-600' : 'bg-gray-800 border-gray-700'
@@ -282,13 +386,13 @@ const AccountSettings = () => {
                 value={displayName}
                 onChangeText={setDisplayName}
                 editable={isEditing}
-                placeholder="Enter your display name"
+                placeholder="Enter your full name"
                 placeholderTextColor="#9CA3AF"
               />
             </View>
 
             <View>
-              <Text className="text-gray-400 text-sm mb-2 mt-2">Email Address</Text>
+              <Text className="text-gray-400 text-sm mb-2">Email Address</Text>
               <TextInput
                 className="bg-gray-800 text-gray-400 p-4 rounded-lg border border-gray-700"
                 value={user?.email}
@@ -302,7 +406,7 @@ const AccountSettings = () => {
             </View>
 
             <View>
-              <Text className="text-gray-400 text-sm mb-2 mt-2">Bio</Text>
+              <Text className="text-gray-400 text-sm mb-2">Bio</Text>
               <TextInput
                 className={`text-white p-4 rounded-lg border ${
                   isEditing ? 'bg-gray-700 border-gray-600' : 'bg-gray-800 border-gray-700'
@@ -319,7 +423,7 @@ const AccountSettings = () => {
             </View>
 
             <View>
-              <Text className="text-gray-400 text-sm mb-2 mt-2">Location</Text>
+              <Text className="text-gray-400 text-sm mb-2">Location</Text>
               <TextInput
                 className={`text-white p-4 rounded-lg border ${
                   isEditing ? 'bg-gray-700 border-gray-600' : 'bg-gray-800 border-gray-700'
@@ -334,7 +438,7 @@ const AccountSettings = () => {
           </View>
 
           {/* Action Buttons */}
-          <View className="flex-row mt-6 space-x-3 gap-3">
+          <View className="flex-row mt-6 space-x-3">
             {isEditing ? (
               <>
                 <TouchableOpacity
@@ -380,7 +484,7 @@ const AccountSettings = () => {
           >
             <Text className="text-white">Change Password</Text>
             <Image 
-              key={showPasswordForm ? 'expanded' : 'collapsed'} // Add unique key
+              key={showPasswordForm ? 'expanded' : 'collapsed'}
               source={icons.arrow} 
               className={showPasswordForm ? "w-4 h-4 rotate-90" : "w-4 h-4"} 
               tintColor="#9CA3AF" 
@@ -405,7 +509,7 @@ const AccountSettings = () => {
               </View>
               
               <View>
-                <Text className="text-gray-400 text-sm mb-2 mt-2">New Password</Text>
+                <Text className="text-gray-400 text-sm mb-2">New Password</Text>
                 <TextInput
                   className="bg-gray-700 text-white p-4 rounded-lg border border-gray-600"
                   placeholder="Enter new password (min. 6 characters)"
@@ -422,7 +526,7 @@ const AccountSettings = () => {
               </View>
               
               <View>
-                <Text className="text-gray-400 text-sm mb-2 mt-2">Confirm New Password</Text>
+                <Text className="text-gray-400 text-sm mb-2">Confirm New Password</Text>
                 <TextInput
                   className="bg-gray-700 text-white p-4 rounded-lg border border-gray-600"
                   placeholder="Confirm your new password"
@@ -457,7 +561,7 @@ const AccountSettings = () => {
               </TouchableOpacity>
               
               <TouchableOpacity
-                className="bg-gray-600 py-3 rounded-lg mt-2"
+                className="bg-gray-600 py-3 rounded-lg"
                 onPress={() => {
                   setShowPasswordForm(false);
                   setCurrentPassword('');

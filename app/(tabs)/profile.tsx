@@ -9,25 +9,38 @@ import {
 } from 'react-native';
 import React, { useEffect, useState } from 'react';
 import { User, getCurrentUser, signOut } from '@/services/auth';
+import { router, useFocusEffect } from 'expo-router';
 
+import { getProfilePictureUrl } from '@/services/userSettings';
 import { icons } from '@/constants/icons';
 import { images } from '@/constants/images';
-import { router } from 'expo-router';
 
 const Profile = () => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [profilePictureUrl, setProfilePictureUrl] = useState<string | null>(null);
 
   // Load user data when component mounts
   useEffect(() => {
     loadUserData();
   }, []);
 
+  // Reload data when screen comes into focus (after returning from settings)
+  useFocusEffect(
+    React.useCallback(() => {
+      loadUserData();
+    }, [])
+  );
+
   const loadUserData = async () => {
     try {
       const userData = await getCurrentUser();
       setUser(userData);
+
+      // Load profile picture
+      const pictureUrl = await getProfilePictureUrl();
+      setProfilePictureUrl(pictureUrl);
     } catch (error) {
       console.error('Error loading user data:', error);
       Alert.alert('Error', 'Failed to load user information');
@@ -121,11 +134,19 @@ const Profile = () => {
         <View className="bg-gray-800/50 rounded-2xl p-6 mb-6 border border-gray-700">
           {/* Avatar Section */}
           <View className="items-center mb-6">
-            <View className="w-24 h-24 bg-blue-600 rounded-full items-center justify-center mb-4">
-              <Text className="text-white text-2xl font-bold">
-                {user.fullName.charAt(0).toUpperCase()}
-              </Text>
-            </View>
+            {profilePictureUrl ? (
+              <Image 
+                source={{ uri: profilePictureUrl }}
+                className="w-24 h-24 rounded-full mb-4"
+                style={{ backgroundColor: '#3B82F6' }}
+              />
+            ) : (
+              <View className="w-24 h-24 bg-blue-600 rounded-full items-center justify-center mb-4">
+                <Text className="text-white text-2xl font-bold">
+                  {user.fullName.charAt(0).toUpperCase()}
+                </Text>
+              </View>
+            )}
             <Text className="text-white text-xl font-bold">{user.fullName}</Text>
             <Text className="text-gray-400 text-sm">{user.email}</Text>
           </View>
@@ -149,6 +170,15 @@ const Profile = () => {
                 <Text className="text-white text-xs font-semibold">Active</Text>
               </View>
             </View>
+
+            {profilePictureUrl && (
+              <View className="flex-row items-center justify-between py-3 border-b border-gray-600">
+                <Text className="text-gray-400">Profile Picture</Text>
+                <View className="bg-blue-600 px-3 py-1 rounded-full">
+                  <Text className="text-white text-xs font-semibold">Custom</Text>
+                </View>
+              </View>
+            )}
           </View>
         </View>
 
