@@ -392,7 +392,7 @@ const AccountSettings = () => {
             </View>
 
             <View>
-              <Text className="text-gray-400 text-sm mb-2">Email Address</Text>
+              <Text className="text-gray-400 text-sm mb-2 mt-2">Email Address</Text>
               <TextInput
                 className="bg-gray-800 text-gray-400 p-4 rounded-lg border border-gray-700"
                 value={user?.email}
@@ -406,7 +406,7 @@ const AccountSettings = () => {
             </View>
 
             <View>
-              <Text className="text-gray-400 text-sm mb-2">Bio</Text>
+              <Text className="text-gray-400 text-sm mb-2 mt-2">Bio</Text>
               <TextInput
                 className={`text-white p-4 rounded-lg border ${
                   isEditing ? 'bg-gray-700 border-gray-600' : 'bg-gray-800 border-gray-700'
@@ -423,7 +423,7 @@ const AccountSettings = () => {
             </View>
 
             <View>
-              <Text className="text-gray-400 text-sm mb-2">Location</Text>
+              <Text className="text-gray-400 text-sm mb-2 mt-2">Location</Text>
               <TextInput
                 className={`text-white p-4 rounded-lg border ${
                   isEditing ? 'bg-gray-700 border-gray-600' : 'bg-gray-800 border-gray-700'
@@ -438,7 +438,7 @@ const AccountSettings = () => {
           </View>
 
           {/* Action Buttons */}
-          <View className="flex-row mt-6 space-x-3">
+          <View className="flex-row mt-6 space-x-3 gap-3">
             {isEditing ? (
               <>
                 <TouchableOpacity
@@ -509,7 +509,7 @@ const AccountSettings = () => {
               </View>
               
               <View>
-                <Text className="text-gray-400 text-sm mb-2">New Password</Text>
+                <Text className="text-gray-400 text-sm mb-2 mt-2">New Password</Text>
                 <TextInput
                   className="bg-gray-700 text-white p-4 rounded-lg border border-gray-600"
                   placeholder="Enter new password (min. 6 characters)"
@@ -521,12 +521,12 @@ const AccountSettings = () => {
                   autoCorrect={false}
                 />
                 {newPassword.length > 0 && newPassword.length < 6 && (
-                  <Text className="text-red-400 text-xs mt-1">Password too short</Text>
+                  <Text className="text-red-400 text-xs mt-1 mt-2">Password too short</Text>
                 )}
               </View>
               
               <View>
-                <Text className="text-gray-400 text-sm mb-2">Confirm New Password</Text>
+                <Text className="text-gray-400 text-sm mb-2 mt-2">Confirm New Password</Text>
                 <TextInput
                   className="bg-gray-700 text-white p-4 rounded-lg border border-gray-600"
                   placeholder="Confirm your new password"
@@ -561,7 +561,7 @@ const AccountSettings = () => {
               </TouchableOpacity>
               
               <TouchableOpacity
-                className="bg-gray-600 py-3 rounded-lg"
+                className="bg-gray-600 py-3 rounded-lg mt-2"
                 onPress={() => {
                   setShowPasswordForm(false);
                   setCurrentPassword('');
