@@ -34,6 +34,12 @@ export default function RootLayout() {
           }}
         />
 
+        <Stack.Screen
+          name="settings"
+          options={{
+            headerShown: false,
+          }}
+        />
       </Stack>
     </>
   );
