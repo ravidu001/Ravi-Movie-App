@@ -159,7 +159,7 @@ const Profile = () => {
           {/* Account Settings */}
           <TouchableOpacity 
             className="flex-row items-center justify-between py-4 border-b border-gray-600"
-            onPress={() => Alert.alert('Info', 'Account settings coming soon!')}
+            onPress={() => router.push('/settings/account')}
           >
             <View className="flex-row items-center">
               <Image source={icons.person} className="w-5 h-5 mr-3" tintColor="#9CA3AF" />
@@ -171,7 +171,7 @@ const Profile = () => {
           {/* Notifications */}
           <TouchableOpacity 
             className="flex-row items-center justify-between py-4 border-b border-gray-600"
-            onPress={() => Alert.alert('Info', 'Notification settings coming soon!')}
+            onPress={() => router.push('/settings/notifications')}
           >
             <View className="flex-row items-center">
               <Image source={icons.save} className="w-5 h-5 mr-3" tintColor="#9CA3AF" />
@@ -183,7 +183,7 @@ const Profile = () => {
           {/* Privacy */}
           <TouchableOpacity 
             className="flex-row items-center justify-between py-4"
-            onPress={() => Alert.alert('Info', 'Privacy settings coming soon!')}
+            onPress={() => router.push('/settings/privacy')}
           >
             <View className="flex-row items-center">
               <Image source={icons.search} className="w-5 h-5 mr-3" tintColor="#9CA3AF" />
@@ -207,7 +207,7 @@ const Profile = () => {
 
           <TouchableOpacity 
             className="flex-row items-center justify-between py-4 border-b border-gray-600"
-            onPress={() => Alert.alert('Info', 'Help & Support coming soon!')}
+            onPress={() => router.push('/settings/help')}
           >
             <Text className="text-white">Help & Support</Text>
             <Image source={icons.arrow} className="w-4 h-4" tintColor="#9CA3AF" />
@@ -215,7 +215,7 @@ const Profile = () => {
 
           <TouchableOpacity 
             className="flex-row items-center justify-between py-4"
-            onPress={() => Alert.alert('Terms', 'Terms of Service coming soon!')}
+            onPress={() => router.push('/settings/terms')}
           >
             <Text className="text-white">Terms of Service</Text>
             <Image source={icons.arrow} className="w-4 h-4" tintColor="#9CA3AF" />
