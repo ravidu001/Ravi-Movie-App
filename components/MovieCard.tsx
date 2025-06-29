@@ -4,11 +4,12 @@ import { isMovieSaved, toggleSaveMovie } from '@/services/userSettings';
 
 import { Link } from 'expo-router';
 import { icons } from '@/constants/icons';
+import { useSavedMovies } from '@/contexts/SavedMoviesContext';
 
 interface MovieCardProps extends Movie {
   onSaveStateChange?: (movieId: number, isSaved: boolean) => void;
-  width?: 'grid' | 'full' | 'auto'; // New prop for width control
-  containerStyle?: any; // Optional custom container style
+  width?: 'grid' | 'full' | 'auto';
+  containerStyle?: any;
 }
 
 const MovieCard = ({ 
@@ -19,23 +20,42 @@ const MovieCard = ({
   release_date, 
   overview,
   onSaveStateChange,
-  width = 'grid', // Default to grid layout (30% width)
+  width = 'grid',
   containerStyle
 }: MovieCardProps) => {
   const [isSaved, setIsSaved] = useState(false);
   const [isToggling, setIsToggling] = useState(false);
+  const [hasCheckedInitialState, setHasCheckedInitialState] = useState(false);
+  
+  // Use the global saved movies context
+  const { updateSavedMovie, isMovieCurrentlySaved } = useSavedMovies();
 
   // Check if movie is saved when component mounts
   useEffect(() => {
     checkSaveStatus();
   }, [id]);
 
+  // Also check if the movie is in the global context (for real-time updates)
+  useEffect(() => {
+    if (hasCheckedInitialState) {
+      const contextSaved = isMovieCurrentlySaved(id);
+      if (contextSaved !== isSaved) {
+        setIsSaved(contextSaved);
+      }
+    }
+  }, [isMovieCurrentlySaved(id), hasCheckedInitialState]);
+
   const checkSaveStatus = async () => {
     try {
       const saved = await isMovieSaved(id);
       setIsSaved(saved);
+      setHasCheckedInitialState(true);
+      
+      // Update the global context with the current state
+      updateSavedMovie(id, saved);
     } catch (error) {
       console.error('Error checking save status:', error);
+      setHasCheckedInitialState(true);
     }
   };
 
@@ -65,7 +85,10 @@ const MovieCard = ({
       if (result.success) {
         setIsSaved(result.saved);
         
-        // Notify parent component about the state change
+        // Update the global context immediately
+        updateSavedMovie(id, result.saved);
+        
+        // Notify parent component about the state change (for local updates)
         if (onSaveStateChange) {
           onSaveStateChange(id, result.saved);
         }

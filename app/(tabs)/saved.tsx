@@ -12,19 +12,21 @@ import {
   SavedMovie,
   clearAllSavedMovies,
   getSavedMovies,
-  getSavedMoviesCount
 } from '@/services/userSettings';
 
 import MovieCard from '@/components/MovieCard';
 import { icons } from '@/constants/icons';
 import { images } from '@/constants/images';
 import { useFocusEffect } from 'expo-router';
+import { useSavedMovies } from '@/contexts/SavedMoviesContext';
 
 const SavedMovies = () => {
   const [savedMovies, setSavedMovies] = useState<SavedMovie[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [savedCount, setSavedCount] = useState(0);
+  
+  // Use global context for count and updates
+  const { savedCount, refreshSavedMovies } = useSavedMovies();
 
   // Load saved movies when component mounts
   useEffect(() => {
@@ -35,6 +37,7 @@ const SavedMovies = () => {
   useFocusEffect(
     React.useCallback(() => {
       loadSavedMovies();
+      refreshSavedMovies(); // Also refresh the global context
     }, [])
   );
 
@@ -42,14 +45,9 @@ const SavedMovies = () => {
     try {
       setLoading(true);
       
-      // Load saved movies and count
-      const [movies, count] = await Promise.all([
-        getSavedMovies(),
-        getSavedMoviesCount()
-      ]);
-      
+      // Load saved movies
+      const movies = await getSavedMovies();
       setSavedMovies(movies);
-      setSavedCount(count);
       
       console.log('✅ Loaded saved movies:', movies.length);
     } catch (error) {
@@ -63,17 +61,8 @@ const SavedMovies = () => {
   const handleRefresh = async () => {
     setRefreshing(true);
     await loadSavedMovies();
+    await refreshSavedMovies();
     setRefreshing(false);
-  };
-
-  const handleSaveStateChange = (movieId: number, isSaved: boolean) => {
-    if (!isSaved) {
-      // Movie was unsaved, remove it from the list immediately
-      setSavedMovies(prev => prev.filter(movie => movie.movie_id !== movieId));
-      setSavedCount(prev => Math.max(0, prev - 1));
-      console.log('🗑️ Removed movie from saved list:', movieId);
-    }
-    // If movie was saved, we don't need to add it here since this is the saved movies screen
   };
 
   const handleClearAll = () => {
@@ -103,7 +92,7 @@ const SavedMovies = () => {
       
       if (result.success) {
         setSavedMovies([]);
-        setSavedCount(0);
+        await refreshSavedMovies(); // Update global context
         Alert.alert('Success', 'All saved movies have been removed');
       } else {
         Alert.alert('Error', result.error || 'Failed to clear saved movies');
@@ -135,12 +124,23 @@ const SavedMovies = () => {
     vote_count: 0
   });
 
-  // FIXED: Render movie with proper layout
+  // Handle real-time save state changes from MovieCard
+  const handleSaveStateChange = (movieId: number, isSaved: boolean) => {
+    if (!isSaved) {
+      // Movie was unsaved, remove it from the list immediately
+      setSavedMovies(prev => prev.filter(movie => movie.movie_id !== movieId));
+      console.log('🗑️ Removed movie from saved list:', movieId);
+    }
+    // The global context is already updated by the MovieCard
+  };
+
+  // Render movie with proper layout
   const renderMovie = ({ item }: { item: SavedMovie }) => (
     <View style={{ flex: 1/3, paddingHorizontal: 8, marginBottom: 16 }}>
       <MovieCard 
-        {...convertToMovieFormat(item)} width="full"
-        onSaveStateChange={handleSaveStateChange} // Pass the callback
+        {...convertToMovieFormat(item)} 
+        width="full"
+        onSaveStateChange={handleSaveStateChange}
       />
       {/* Show saved date */}
       <Text className="text-gray-400 text-xs text-center mt-1">

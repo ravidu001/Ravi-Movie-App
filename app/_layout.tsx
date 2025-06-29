@@ -1,11 +1,12 @@
 import './globals.css';
 
+import { SavedMoviesProvider } from '@/contexts/SavedMoviesContext';
 import { Stack } from "expo-router";
 import { StatusBar } from 'react-native';
 
 export default function RootLayout() {
   return (
-    <>
+    <SavedMoviesProvider>
       <StatusBar hidden={true} />
       <Stack>
         <Stack.Screen
@@ -26,14 +27,12 @@ export default function RootLayout() {
             headerShown: false,
           }}
         />
-
         <Stack.Screen
           name="movies/[id]"
           options={{
             headerShown: false,
           }}
         />
-
         <Stack.Screen
           name="settings"
           options={{
@@ -41,6 +40,6 @@ export default function RootLayout() {
           }}
         />
       </Stack>
-    </>
+    </SavedMoviesProvider>
   );
 }
