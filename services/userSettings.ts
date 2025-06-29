@@ -8,6 +8,7 @@ import { getCurrentUser } from './auth';
 const DATABASE_ID = process.env.EXPO_PUBLIC_DATABASE_ID!;
 const USER_PREFERENCES_COLLECTION_ID = process.env.EXPO_PUBLIC_USER_PREFERENCES_COLLECTION_ID!;
 const USER_PROFILES_COLLECTION_ID = process.env.EXPO_PUBLIC_USER_PROFILES_COLLECTION_ID!;
+const SAVED_MOVIES_COLLECTION_ID = process.env.EXPO_PUBLIC_SAVED_MOVIES_COLLECTION_ID!;
 
 const client = new Client()
     .setEndpoint('https://nyc.cloud.appwrite.io/v1')
@@ -66,6 +67,30 @@ export interface UpdateProfileData {
     location?: string;
     date_of_birth?: string;
     favorite_genres?: string[];
+}
+
+export interface SavedMovie {
+    $id?: string;
+    user_id: string;
+    movie_id: number;
+    title: string;
+    poster_path?: string;
+    poster_url?: string;
+    release_date?: string;
+    vote_average?: number;
+    overview?: string;
+    saved_at?: string;
+    created_at?: string;
+    updated_at?: string;
+}
+
+export interface MovieToSave {
+    id: number;
+    title: string;
+    poster_path?: string;
+    release_date?: string;
+    vote_average?: number;
+    overview?: string;
 }
 
 // ==============================================
@@ -772,5 +797,250 @@ export const clearUserData = async (): Promise<{ success: boolean; error?: strin
     } catch (error) {
         console.error('Error clearing user data:', error);
         return { success: false, error: 'Failed to clear user data' };
+    }
+};
+
+// ==============================================
+// SAVED MOVIES FUNCTIONS
+// ==============================================
+
+/**
+ * Save a movie to user's saved list
+ */
+export const saveMovie = async (movie: MovieToSave): Promise<{ success: boolean; error?: string }> => {
+    try {
+        const user = await getCurrentUser();
+        if (!user) {
+            return { success: false, error: 'User not authenticated' };
+        }
+
+        // Check if movie is already saved
+        const existingResult = await database.listDocuments(
+            DATABASE_ID,
+            SAVED_MOVIES_COLLECTION_ID,
+            [
+                Query.equal('user_id', user.$id),
+                Query.equal('movie_id', movie.id)
+            ]
+        );
+
+        if (existingResult.documents.length > 0) {
+            return { success: false, error: 'Movie is already saved' };
+        }
+
+        // Create saved movie document
+        const savedMovie: Omit<SavedMovie, '$id'> = {
+            user_id: user.$id,
+            movie_id: movie.id,
+            title: movie.title,
+            poster_path: movie.poster_path || '',
+            poster_url: movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : '',
+            release_date: movie.release_date || '',
+            vote_average: movie.vote_average || 0,
+            overview: movie.overview || '',
+            saved_at: new Date().toISOString(),
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+        };
+
+        await database.createDocument(
+            DATABASE_ID,
+            SAVED_MOVIES_COLLECTION_ID,
+            ID.unique(),
+            savedMovie
+        );
+
+        console.log('✅ Movie saved successfully:', movie.title);
+        return { success: true };
+
+    } catch (error) {
+        console.error('❌ Error saving movie:', error);
+        return { success: false, error: 'Failed to save movie' };
+    }
+};
+
+/**
+ * Remove a movie from user's saved list
+ */
+export const unsaveMovie = async (movieId: number): Promise<{ success: boolean; error?: string }> => {
+    try {
+        const user = await getCurrentUser();
+        if (!user) {
+            return { success: false, error: 'User not authenticated' };
+        }
+
+        // Find the saved movie document
+        const result = await database.listDocuments(
+            DATABASE_ID,
+            SAVED_MOVIES_COLLECTION_ID,
+            [
+                Query.equal('user_id', user.$id),
+                Query.equal('movie_id', movieId)
+            ]
+        );
+
+        if (result.documents.length === 0) {
+            return { success: false, error: 'Movie not found in saved list' };
+        }
+
+        // Delete the saved movie document
+        await database.deleteDocument(
+            DATABASE_ID,
+            SAVED_MOVIES_COLLECTION_ID,
+            result.documents[0].$id
+        );
+
+        console.log('✅ Movie removed from saved list:', movieId);
+        return { success: true };
+
+    } catch (error) {
+        console.error('❌ Error removing saved movie:', error);
+        return { success: false, error: 'Failed to remove movie' };
+    }
+};
+
+/**
+ * Check if a movie is saved by the user
+ */
+export const isMovieSaved = async (movieId: number): Promise<boolean> => {
+    try {
+        const user = await getCurrentUser();
+        if (!user) return false;
+
+        const result = await database.listDocuments(
+            DATABASE_ID,
+            SAVED_MOVIES_COLLECTION_ID,
+            [
+                Query.equal('user_id', user.$id),
+                Query.equal('movie_id', movieId)
+            ]
+        );
+
+        return result.documents.length > 0;
+
+    } catch (error) {
+        console.error('❌ Error checking if movie is saved:', error);
+        return false;
+    }
+};
+
+/**
+ * Get all saved movies for the user
+ */
+export const getSavedMovies = async (): Promise<SavedMovie[]> => {
+    try {
+        const user = await getCurrentUser();
+        if (!user) {
+            throw new Error('User not authenticated');
+        }
+
+        const result = await database.listDocuments(
+            DATABASE_ID,
+            SAVED_MOVIES_COLLECTION_ID,
+            [
+                Query.equal('user_id', user.$id),
+                Query.orderDesc('saved_at'),
+                Query.limit(100) // Limit to 100 saved movies
+            ]
+        );
+
+        console.log('✅ Retrieved saved movies:', result.documents.length);
+        return result.documents as unknown as SavedMovie[];
+
+    } catch (error) {
+        console.error('❌ Error getting saved movies:', error);
+        return [];
+    }
+};
+
+/**
+ * Get saved movies count for the user
+ */
+export const getSavedMoviesCount = async (): Promise<number> => {
+    try {
+        const user = await getCurrentUser();
+        if (!user) return 0;
+
+        const result = await database.listDocuments(
+            DATABASE_ID,
+            SAVED_MOVIES_COLLECTION_ID,
+            [
+                Query.equal('user_id', user.$id),
+                Query.limit(1) // We only need the count
+            ]
+        );
+
+        return result.total;
+
+    } catch (error) {
+        console.error('❌ Error getting saved movies count:', error);
+        return 0;
+    }
+};
+
+/**
+ * Toggle save/unsave movie (convenience function)
+ */
+export const toggleSaveMovie = async (movie: MovieToSave): Promise<{ success: boolean; saved: boolean; error?: string }> => {
+    try {
+        const isSaved = await isMovieSaved(movie.id);
+        
+        if (isSaved) {
+            const result = await unsaveMovie(movie.id);
+            if (result.success) {
+                return { success: true, saved: false };
+            } else {
+                return { success: false, saved: true, error: result.error };
+            }
+        } else {
+            const result = await saveMovie(movie);
+            if (result.success) {
+                return { success: true, saved: true };
+            } else {
+                return { success: false, saved: false, error: result.error };
+            }
+        }
+
+    } catch (error) {
+        console.error('❌ Error toggling save movie:', error);
+        return { success: false, saved: false, error: 'Failed to toggle save status' };
+    }
+};
+
+/**
+ * Clear all saved movies for the user
+ */
+export const clearAllSavedMovies = async (): Promise<{ success: boolean; error?: string }> => {
+    try {
+        const user = await getCurrentUser();
+        if (!user) {
+            return { success: false, error: 'User not authenticated' };
+        }
+
+        // Get all saved movies
+        const result = await database.listDocuments(
+            DATABASE_ID,
+            SAVED_MOVIES_COLLECTION_ID,
+            [
+                Query.equal('user_id', user.$id),
+                Query.limit(1000) // Get up to 1000 documents
+            ]
+        );
+
+        // Delete all saved movies
+        for (const doc of result.documents) {
+            await database.deleteDocument(
+                DATABASE_ID,
+                SAVED_MOVIES_COLLECTION_ID,
+                doc.$id
+            );
+        }
+
+        console.log('✅ All saved movies cleared:', result.documents.length);
+        return { success: true };
+
+    } catch (error) {
+        console.error('❌ Error clearing saved movies:', error);
+        return { success: false, error: 'Failed to clear saved movies' };
     }
 };
