@@ -66,6 +66,16 @@ const SavedMovies = () => {
     setRefreshing(false);
   };
 
+  const handleSaveStateChange = (movieId: number, isSaved: boolean) => {
+    if (!isSaved) {
+      // Movie was unsaved, remove it from the list immediately
+      setSavedMovies(prev => prev.filter(movie => movie.movie_id !== movieId));
+      setSavedCount(prev => Math.max(0, prev - 1));
+      console.log('🗑️ Removed movie from saved list:', movieId);
+    }
+    // If movie was saved, we don't need to add it here since this is the saved movies screen
+  };
+
   const handleClearAll = () => {
     if (savedMovies.length === 0) {
       Alert.alert('Info', 'No saved movies to clear');
@@ -112,7 +122,7 @@ const SavedMovies = () => {
     title: savedMovie.title,
     poster_path: savedMovie.poster_path || '',
     release_date: savedMovie.release_date || '',
-    vote_average: savedMovie.vote_average || 0,
+    vote_average: (savedMovie.vote_average || 0) / 10, // Convert back to decimal (75 -> 7.5)
     overview: savedMovie.overview || '',
     // Add other required Movie fields with defaults
     adult: false,
@@ -125,15 +135,41 @@ const SavedMovies = () => {
     vote_count: 0
   });
 
+  // FIXED: Render movie with proper layout
   const renderMovie = ({ item }: { item: SavedMovie }) => (
-    <View className="flex-1 mx-2 mb-4">
-      <MovieCard {...convertToMovieFormat(item)} />
+    <View style={{ flex: 1/3, paddingHorizontal: 8, marginBottom: 16 }}>
+      <MovieCard 
+        {...convertToMovieFormat(item)} 
+        onSaveStateChange={handleSaveStateChange} // Pass the callback
+      />
       {/* Show saved date */}
       <Text className="text-gray-400 text-xs text-center mt-1">
         Saved {new Date(item.saved_at || '').toLocaleDateString()}
       </Text>
     </View>
   );
+
+  // Create padded data for FlatList to ensure proper layout
+  const createPaddedData = (data: SavedMovie[]) => {
+    const paddedData = [...data];
+    const remainder = data.length % 3;
+    if (remainder !== 0) {
+      // Add empty items to complete the last row
+      for (let i = 0; i < 3 - remainder; i++) {
+        paddedData.push({ movie_id: -i - 1 } as SavedMovie); // Negative IDs for empty items
+      }
+    }
+    return paddedData;
+  };
+
+  const renderMovieWithPadding = ({ item }: { item: SavedMovie }) => {
+    // Render empty space for padding items
+    if (item.movie_id < 0) {
+      return <View style={{ flex: 1/3, paddingHorizontal: 8 }} />;
+    }
+    
+    return renderMovie({ item });
+  };
 
   if (loading && !refreshing) {
     return (
@@ -150,15 +186,11 @@ const SavedMovies = () => {
       <Image source={images.bg} className="absolute w-full z-0" resizeMode="cover" />
 
       <FlatList
-        data={savedMovies}
-        renderItem={renderMovie}
-        keyExtractor={(item) => item.$id || item.movie_id.toString()}
+        data={createPaddedData(savedMovies)}
+        renderItem={renderMovieWithPadding}
+        keyExtractor={(item, index) => item.$id || `${item.movie_id}-${index}`}
         numColumns={3}
         className="px-3"
-        columnWrapperStyle={{
-          justifyContent: 'flex-start',
-          gap: 8,
-        }}
         contentContainerStyle={{ paddingBottom: 100 }}
         refreshing={refreshing}
         onRefresh={handleRefresh}
@@ -201,7 +233,7 @@ const SavedMovies = () => {
                   <View className="items-center">
                     <Text className="text-green-400 text-lg font-bold">
                       {savedMovies.length > 0 
-                        ? (savedMovies.reduce((sum, movie) => sum + (movie.vote_average || 0), 0) / savedMovies.length).toFixed(1)
+                        ? (savedMovies.reduce((sum, movie) => sum + ((movie.vote_average || 0) / 10), 0) / savedMovies.length).toFixed(1)
                         : '0'
                       }
                     </Text>
