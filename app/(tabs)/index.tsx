@@ -75,7 +75,7 @@ export default function Index() {
               data={movies}
               renderItem={({ item }) => (
                 <MovieCard 
-                  {...item}
+                  {...item} width="grid"
                 />
               )}
               keyExtractor={(item) => item.id.toString()}

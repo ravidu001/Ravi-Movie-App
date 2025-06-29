@@ -139,7 +139,7 @@ const SavedMovies = () => {
   const renderMovie = ({ item }: { item: SavedMovie }) => (
     <View style={{ flex: 1/3, paddingHorizontal: 8, marginBottom: 16 }}>
       <MovieCard 
-        {...convertToMovieFormat(item)} 
+        {...convertToMovieFormat(item)} width="full"
         onSaveStateChange={handleSaveStateChange} // Pass the callback
       />
       {/* Show saved date */}

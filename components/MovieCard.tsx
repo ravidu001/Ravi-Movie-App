@@ -6,7 +6,9 @@ import { Link } from 'expo-router';
 import { icons } from '@/constants/icons';
 
 interface MovieCardProps extends Movie {
-  onSaveStateChange?: (movieId: number, isSaved: boolean) => void; // New prop for real-time updates
+  onSaveStateChange?: (movieId: number, isSaved: boolean) => void;
+  width?: 'grid' | 'full' | 'auto'; // New prop for width control
+  containerStyle?: any; // Optional custom container style
 }
 
 const MovieCard = ({ 
@@ -16,7 +18,9 @@ const MovieCard = ({
   vote_average, 
   release_date, 
   overview,
-  onSaveStateChange 
+  onSaveStateChange,
+  width = 'grid', // Default to grid layout (30% width)
+  containerStyle
 }: MovieCardProps) => {
   const [isSaved, setIsSaved] = useState(false);
   const [isToggling, setIsToggling] = useState(false);
@@ -46,11 +50,11 @@ const MovieCard = ({
     try {
       // Ensure all data is properly formatted
       const movieData = {
-        id: Number(id), // Ensure it's a number
+        id: Number(id),
         title: title || 'Unknown Title',
         poster_path: poster_path || '',
         release_date: release_date || '',
-        vote_average: Number(vote_average) || 0, // Ensure it's a number
+        vote_average: Number(vote_average) || 0,
         overview: overview || ''
       };
 
@@ -66,11 +70,6 @@ const MovieCard = ({
           onSaveStateChange(id, result.saved);
         }
         
-        // Show subtle feedback
-        const message = result.saved ? `"${title}" saved!` : `"${title}" removed from saved list`;
-        // Remove Alert for silent operation - you can uncomment if you want notifications
-        // Alert.alert('Success', message);
-        
         console.log(`✅ ${result.saved ? 'Saved' : 'Removed'}: ${title}`);
       } else {
         console.error('Toggle save failed:', result.error);
@@ -84,9 +83,26 @@ const MovieCard = ({
     }
   };
 
+  // Determine width class based on width prop
+  const getWidthClass = () => {
+    switch (width) {
+      case 'full':
+        return 'w-full';
+      case 'grid':
+        return 'w-[30%]';
+      case 'auto':
+        return 'w-auto';
+      default:
+        return 'w-[30%]';
+    }
+  };
+
   return (
     <Link href={`/movies/${id}`} asChild>
-      <TouchableOpacity className="w-full relative">
+      <TouchableOpacity 
+        className={`${getWidthClass()} relative`}
+        style={containerStyle}
+      >
         <Image 
           source={{
             uri: poster_path ? `https://image.tmdb.org/t/p/w500${poster_path}` : 'https://placehold.co/600x400/1a1a1a/ffffff.png'
