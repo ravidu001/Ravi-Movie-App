@@ -14,12 +14,45 @@ import { router, useFocusEffect } from 'expo-router';
 import { getProfilePictureUrl } from '@/services/userSettings';
 import { icons } from '@/constants/icons';
 import { images } from '@/constants/images';
+import { revokeSession } from '@/services/auth';
+import { useSession } from '@/contexts/SessionContext';
 
 const Profile = () => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [profilePictureUrl, setProfilePictureUrl] = useState<string | null>(null);
+  const { user: sessionUser, sessions, loadSessions } = useSession();
+
+  const handleRevokeSession = (sessionId: string) => {
+    Alert.alert(
+      'Revoke Session',
+      'Are you sure you want to revoke this session? This will log out the device using this session.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Revoke', 
+          style: 'destructive',
+          onPress: () => performRevokeSession(sessionId)
+        }
+      ]
+    );
+  };
+
+  const performRevokeSession = async (sessionId: string) => {
+    try {
+      const success = await revokeSession(sessionId);
+      if (success) {
+        Alert.alert('Success', 'Session revoked successfully');
+        await loadSessions(); // Refresh sessions list
+      } else {
+        Alert.alert('Error', 'Failed to revoke session');
+      }
+    } catch (error) {
+      console.error('Error revoking session:', error);
+      Alert.alert('Error', 'Failed to revoke session');
+    }
+  };
 
   // Load user data when component mounts
   useEffect(() => {
@@ -250,6 +283,69 @@ const Profile = () => {
             <Text className="text-white">Terms of Service</Text>
             <Image source={icons.arrow} className="w-4 h-4" tintColor="#9CA3AF" />
           </TouchableOpacity>
+        </View>
+
+        {/* Active Sessions Section */}
+        <View className="bg-gray-800/50 rounded-2xl p-6 mb-6 border border-gray-700">
+          <View className="flex-row items-center justify-between mb-4">
+            <Text className="text-white text-lg font-bold">Active Sessions</Text>
+            <TouchableOpacity onPress={loadSessions}>
+              <Text className="text-blue-400 text-sm">Refresh</Text>
+            </TouchableOpacity>
+          </View>
+          
+          {sessions.length > 0 ? (
+            <>
+              <Text className="text-gray-400 text-sm mb-4">
+                Manage your active login sessions across different devices.
+              </Text>
+              
+              {sessions.map((session, index) => (
+                <View key={session.$id} className="py-3 border-b border-gray-600">
+                  <View className="flex-row justify-between items-start">
+                    <View className="flex-1">
+                      <Text className="text-white font-medium">
+                        Session {index + 1}
+                      </Text>
+                      <Text className="text-gray-400 text-xs mt-1">
+                        Created: {new Date(session.createdAt).toLocaleDateString()}
+                      </Text>
+                      <Text className="text-gray-400 text-xs">
+                        Expires: {new Date(session.expiresAt).toLocaleDateString()}
+                      </Text>
+                      
+                      {/* Show if this is the current session */}
+                      <View className="mt-2">
+                        <View className="bg-green-600 px-2 py-1 rounded-full self-start">
+                          <Text className="text-white text-xs">Current Device</Text>
+                        </View>
+                      </View>
+                    </View>
+                    
+                    {sessions.length > 1 && (
+                      <TouchableOpacity
+                        onPress={() => handleRevokeSession(session.$id!)}
+                        className="bg-red-600/20 border border-red-600 px-3 py-1 rounded"
+                      >
+                        <Text className="text-red-400 text-xs">Revoke</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                </View>
+              ))}
+              
+              <View className="mt-4 p-3 bg-blue-900/20 rounded-lg border border-blue-800">
+                <Text className="text-blue-300 text-xs">
+                  💡 You have {sessions.length} active session{sessions.length !== 1 ? 's' : ''}. 
+                  Sessions automatically expire after 30 days of inactivity.
+                </Text>
+              </View>
+            </>
+          ) : (
+            <Text className="text-gray-400 text-center py-4">
+              No active sessions found
+            </Text>
+          )}
         </View>
 
         {/* Logout Button */}

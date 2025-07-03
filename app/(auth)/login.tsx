@@ -14,11 +14,13 @@ import React, { useState } from 'react';
 import { icons } from '@/constants/icons';
 import { images } from '@/constants/images';
 import { router } from 'expo-router';
+import { useSession } from '@/contexts/SessionContext';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const { login } = useSession();
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -34,24 +36,29 @@ const Login = () => {
         password: password,
       };
 
+      console.log('🔄 Attempting login for:', email);
       const result = await signIn(loginData);
+      console.log('📝 Login result:', result);
 
-      if (result.success) {
+      if (result.success && result.user) {
+        // Update the session context
+        login(result.user);
+        
         Alert.alert('Success', 'Login successful!', [
           {
             text: 'OK',
             onPress: () => {
-              // Navigate to tabs (main app)
               router.replace('/(tabs)');
             },
           },
         ]);
       } else {
+        console.error('❌ Login failed:', result.error);
         Alert.alert('Error', result.error || 'Login failed');
       }
     } catch (error) {
+      console.error('❌ Login error details:', error);
       Alert.alert('Error', 'An unexpected error occurred. Please try again.');
-      console.error('Login error:', error);
     } finally {
       setIsLoading(false);
     }
