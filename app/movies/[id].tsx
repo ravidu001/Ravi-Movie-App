@@ -1,9 +1,10 @@
-import { Image, ScrollView, Text, TouchableOpacity, View } from 'react-native'
+import { ActivityIndicator, Image, ScrollView, Text, TouchableOpacity, View } from 'react-native'
 import { router, useLocalSearchParams } from 'expo-router'
 
 import React from 'react'
 import { fetchMovieDetails } from '@/services/api';
 import { icons } from '@/constants/icons';
+import { images } from '@/constants/images';
 import useFetch from '@/services/useFetch';
 
 interface MovieInfoProps {
@@ -22,6 +23,22 @@ const MovieDetails = () => {
   const { id } = useLocalSearchParams();
 
   const { data:movie, loading } = useFetch(() => fetchMovieDetails(id as string));
+  
+  if (loading) {
+    return (
+      <View className="flex-1 bg-primary">
+        <Image 
+          source={images.bg} 
+          className="absolute w-full h-full z-0" 
+          resizeMode="cover" 
+        />
+        <View className="flex-1 justify-center items-center">
+          <ActivityIndicator size="large" color="#3B82F6" />
+          <Text className="text-white mt-4 text-center">Loading movie details...</Text>
+        </View>
+      </View>
+    );
+  }
   
   return (
     <View className='bg-primary flex-1'>

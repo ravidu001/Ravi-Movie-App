@@ -173,10 +173,16 @@ const SavedMovies = () => {
 
   if (loading && !refreshing) {
     return (
-      <View className="flex-1 bg-primary justify-center items-center">
-        <Image source={images.bg} className="absolute w-full z-0" resizeMode="cover" />
-        <ActivityIndicator size="large" color="#3B82F6" />
-        <Text className="text-white mt-4">Loading saved movies...</Text>
+      <View className="flex-1 bg-primary">
+        <Image 
+          source={images.bg} 
+          className="absolute w-full h-full z-0" 
+          resizeMode="cover" 
+        />
+        <View className="flex-1 justify-center items-center">
+          <ActivityIndicator size="large" color="#3B82F6" />
+          <Text className="text-white mt-4 text-center">Loading saved movies...</Text>
+        </View>
       </View>
     );
   }
