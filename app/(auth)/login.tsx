@@ -129,11 +129,11 @@ const Login = () => {
             </TouchableOpacity>
 
             {/* Forgot Password */}
-            <TouchableOpacity className="mt-4">
+            {/* <TouchableOpacity className="mt-4">
               <Text className="text-blue-400 text-center">
                 Forgot Password?
               </Text>
-            </TouchableOpacity>
+            </TouchableOpacity> */}
           </View>
 
           {/* Sign Up Link */}
